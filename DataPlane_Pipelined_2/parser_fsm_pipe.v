@@ -85,6 +85,18 @@ module parser_fsm_pipe
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state      <= S_IDLE;
+             has_vlan       <= 1'b0;
+            vlan_id        <= 12'd0;
+            is_ipv4        <= 1'b0;
+            is_ipv6        <= 1'b0;
+            is_arp         <= 1'b0;
+            is_fragmented  <= 1'b0;
+            src_ip         <= 32'd0;
+            dst_ip         <= 32'd0;
+            src_port       <= 16'd0;
+            dst_port       <= 16'd0;
+            tcp_flags      <= 8'd0;
+            icmp_type      <= 8'd0;
             //parse_done <= 1'b0;
         end else begin
             //parse_done <= 1'b0;
