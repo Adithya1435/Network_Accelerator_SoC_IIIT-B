@@ -6,7 +6,7 @@ all : sim
 sim: uart_tb.vvp uart_firmware.hex
 	vvp -N $< +firmware=uart_firmware.hex
 
-uart_tb.vvp: uart_tb.v ../pico_wrapper.v ../spimemio.v ../simpleuart.v ../picosoc.v ../picorv32.v ../spiflash.v
+uart_tb.vvp: uart_tb.v ../pico_wrapper_axi.v ../axi_s_adapter.v ../spimemio.v ../spimemio_axi.v ../simpleuart.v ../uart_axi.v ../picosoc_mem_axi.v ../picosoc_axi.v ../picorv32.v ../spiflash.v
 	iverilog -s uart_tb -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
 
 uart_firmware.elf: sections.lds start.s firmware.c
