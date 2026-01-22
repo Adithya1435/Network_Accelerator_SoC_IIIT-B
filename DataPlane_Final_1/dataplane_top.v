@@ -151,68 +151,146 @@ module dataplane_top #(
         .is_fragmented(is_fragmented)
     );
 
-    //key builder
-    wire [KEY_W-1:0] tcam_key;
+   //parser to key pipeline reg
+    wire key_valid;
+    wire key_ready;
 
-    key_builder_pipe u_key_builder_pipe (
-        .src_ip        (src_ip),
-        .dst_ip        (dst_ip),
-        .ip_proto      (ip_proto),
-        .src_port      (src_port),
-        .dst_port      (dst_port),
-        .vlan_id       (vlan_id),
-        .dscp          (dscp),
-        .is_ipv4       (is_ipv4),
-        .is_ipv6       (is_ipv6),
-        .is_arp        (is_arp),
-        .is_fragmented (is_fragmented),
-        .tcam_key      (tcam_key)
+    wire [31:0] key_src_ip, key_dst_ip;
+    wire [7:0]  key_ip_proto;
+    wire [15:0] key_src_port, key_dst_port;
+    wire [11:0] key_vlan_id;
+    wire [5:0]  key_dscp;
+    wire        key_is_ipv4, key_is_ipv6, key_is_arp, key_is_fragmented;
+
+    parser_to_key_pipe u_parser_to_key_pipe (
+        .clk(clk),
+        .rst_n(rst_n),
+
+        .parser_valid(parser_valid),
+        .parser_ready(),        // parser never stalls for now
+
+        .src_ip(src_ip),
+        .dst_ip(dst_ip),
+        .ip_proto(ip_proto),
+        .src_port(src_port),
+        .dst_port(dst_port),
+        .vlan_id(vlan_id),
+        .dscp(dscp),
+        .is_ipv4(is_ipv4),
+        .is_ipv6(is_ipv6),
+        .is_arp(is_arp),
+        .is_fragmented(is_fragmented),
+
+        .key_valid(key_valid),
+        .key_ready(key_ready),
+
+        .key_src_ip(key_src_ip),
+        .key_dst_ip(key_dst_ip),
+        .key_ip_proto(key_ip_proto),
+        .key_src_port(key_src_port),
+        .key_dst_port(key_dst_port),
+        .key_vlan_id(key_vlan_id),
+        .key_dscp(key_dscp),
+        .key_is_ipv4(key_is_ipv4),
+        .key_is_ipv6(key_is_ipv6),
+        .key_is_arp(key_is_arp),
+        .key_is_fragmented(key_is_fragmented)
     );
 
-    //tcam
-    wire tcam_hit;
-    wire [$clog2(TCAM_ENTRIES)-1:0] hit_index;
 
-   tcam_ctrl_pipe u_tcam_ctrl_pipe (
-    .clk        (clk),
-    .rst_n      (rst_n),
 
-    .key        (tcam_key),
-    .key_valid  (parser_valid),
 
-    .hit        (tcam_hit),
-    .hit_index  (hit_index),
 
-    // control plane
-    .wr_en      (cfg_tcam_wr_en),
-    .wr_is_mask (cfg_tcam_wr_is_mask),
-    .wr_addr    (cfg_tcam_wr_addr),
-    .wr_data    (cfg_tcam_wr_data)
+
+
+
+    //key builder
+   wire [KEY_W-1:0] tcam_key;
+
+key_builder_pipe u_key_builder_pipe (
+    .src_ip        (key_src_ip),
+    .dst_ip        (key_dst_ip),
+    .ip_proto      (key_ip_proto),
+    .src_port      (key_src_port),
+    .dst_port      (key_dst_port),
+    .vlan_id       (key_vlan_id),
+    .dscp          (key_dscp),
+    .is_ipv4       (key_is_ipv4),
+    .is_ipv6       (key_is_ipv6),
+    .is_arp        (key_is_arp),
+    .is_fragmented (key_is_fragmented),
+    .tcam_key      (tcam_key)
 );
 
+
+    //tcam
+wire tcam_hit;
+wire [$clog2(TCAM_ENTRIES)-1:0] hit_index;
+
+tcam_ctrl_pipe u_tcam_ctrl_pipe (
+    .clk       (clk),
+    .rst_n     (rst_n),
+
+    .key       (tcam_key),
+    .key_valid (key_valid),
+
+    .hit       (tcam_hit),
+    .hit_index (hit_index),
+
+    .wr_en     (cfg_tcam_wr_en),
+    .wr_is_mask(cfg_tcam_wr_is_mask),
+    .wr_addr   (cfg_tcam_wr_addr),
+    .wr_data   (cfg_tcam_wr_data)
+);
+
+//tcam to action pipeline
+
+wire action_meta_valid;
+wire action_meta_ready;
+wire action_hit;
+wire [3:0] action_index;
+
+tcam_to_action_pipe u_tcam_to_action_pipe (
+    .clk(clk),
+    .rst_n(rst_n),
+
+    .tcam_valid(key_valid),
+    .tcam_hit(tcam_hit),
+    .tcam_hit_index(hit_index),
+
+    .tcam_ready(key_ready),
+
+    .action_valid(action_meta_valid),
+    .action_ready(action_meta_ready),
+    .action_hit(action_hit),
+    .action_index(action_index)
+);
+
+
     //action
-    wire action_valid;
-    wire [ACTION_W-1:0] action;
+wire action_valid;
+wire [ACTION_W-1:0] action;
 
-   action_pipe u_action_pipe (
-    .clk          (clk),
-    .rst_n        (rst_n),
+action_pipe u_action_pipe (
+    .clk(clk),
+    .rst_n(rst_n),
 
-    .tcam_valid   (parser_valid),
-    .hit          (tcam_hit),
-    .hit_index    (hit_index),
+    .tcam_valid (action_meta_valid),
+    .hit        (action_hit),
+    .hit_index  (action_index),
 
-    .action_valid (action_valid),
-    .action       (action),
+    .action_valid(action_valid),
+    .action      (action),
 
-    // control plane
     .wr_en        (cfg_action_wr_en),
     .wr_addr      (cfg_action_wr_addr),
     .wr_data      (cfg_action_wr_data),
-
     .wr_default   (cfg_action_wr_default),
     .default_data (cfg_action_default_data)
 );
+
+assign action_meta_ready = 1'b1; // no backpressure for now
+
 
 
     //upper part of the pipeline
