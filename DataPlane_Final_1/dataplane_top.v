@@ -10,7 +10,7 @@ module dataplane_top #(
     input  wire        clk,
     input  wire        rst_n,
 
-    //frm the bottom fifo (i/p)
+    //into the bottom fifo (i/p)
     input  wire        rx_valid,
     input  wire [7:0]  rx_data,
     input  wire        rx_last,
