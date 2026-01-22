@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module uart_tb;
+module tcam_tb;
 	reg clk;
 	always #5 clk = (clk === 1'b0);
 
@@ -15,8 +15,8 @@ module uart_tb;
 	event ser_sample;
 
 	initial begin
-		$dumpfile("uart_tb.vcd");
-		$dumpvars(0, uart_tb);
+		$dumpfile("tcam_tb.vcd");
+		$dumpvars(0, tcam_tb);
 
 		repeat (6) begin
 			repeat (50000) @(posedge clk);
