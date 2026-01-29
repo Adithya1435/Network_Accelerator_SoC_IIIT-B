@@ -2,7 +2,7 @@
 // Words: 256
 // Word size: 32
 // Write size: 8
-
+/// sta-blackbox
 module sky130_sram_1kbyte_1rw1r_32x256_8(
 `ifdef USE_POWER_PINS
     vccd1,

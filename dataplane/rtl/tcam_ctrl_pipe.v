@@ -31,14 +31,9 @@ module tcam_ctrl_pipe #(
   
     wire [ENTRIES-1:0] match;// each of 16 bits is 1 or 0 bsed on whether masked key and value hv matched
 
-
-    integer k;
     always @(posedge clk or negedge rst_n) begin//ctrl plane writes
         if (!rst_n) begin
-            for (k = 0; k < ENTRIES; k = k + 1) begin
-                tcam_value[k] <= {KEY_W{1'b0}};
-                tcam_mask[k] <= {KEY_W{1'b1}};
-            end
+
         end else if (wr_en) begin
             if (wr_is_mask)// its writing mask
                 tcam_mask[wr_addr]  <= wr_data;

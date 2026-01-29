@@ -1,4 +1,9 @@
-module pico_wrapper (
+module pico_wrapper #(
+    parameter KEY_W   = 128,
+    parameter ENTRIES = 16,
+    parameter IDX_W = $clog2(ENTRIES),
+    parameter ACTION_W = 64
+)(
 
 	`ifdef USE_POWER_PINS
     inout vccd1,
